@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="app_name_resumen_viaje">Resumen de viaje</string>
+    <string name="app_name_editar_viaje">Editar nuevo viaje</string>
+    <string name="action_settings">Configuración</string>
+    
+    <string name="txt_ciudad">Introducir ciudad:</string>
+    <string name="txt_pais">Introducir país:</string>
+    <string name="txt_anyo">Introducir año:</string>
+    <string name="txt_anotacion">Introducir anotación:</string>
+    <string name="txt_boton">Guardar</string>
+    
+    <string name="ciudad">ciudad</string>
+    <string name="pais">país</string>
+    <string name="anyo">año</string>
+    <string name="anotacion">anotación</string>
+    
+
+</resources>
