@@ -1,6 +1,10 @@
 package al.uax.ejercicio.tema3.travelsummary;
 
-public class TravelInfo {
+import java.io.Serializable;
+
+public class TravelInfo implements Serializable{
+	private static final long serialVersionUID = 1L;
+	
 	//Atributos de la clase
 	private String ciudad;
 	private String pais;

@@ -3,7 +3,6 @@
 
     <string name="app_name_resumen_viaje">Resumen de viaje</string>
     <string name="app_name_editar_viaje">Editar nuevo viaje</string>
-    <string name="action_settings">Configuración</string>
     
     <string name="txt_ciudad">Introducir ciudad:</string>
     <string name="txt_pais">Introducir país:</string>
@@ -16,5 +15,9 @@
     <string name="anyo">año</string>
     <string name="anotacion">anotación</string>
     
-
+    <string name="menu_item_modif">Modificar</string>
+    <string name="menu_item_delete">Borrar</string>
+    
+    <string name="action_settings">Configuración</string>
+    <string name="add_item">Añadir viaje</string>
 </resources>

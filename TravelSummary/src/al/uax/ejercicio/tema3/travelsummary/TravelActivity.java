@@ -1,11 +1,16 @@
 package al.uax.ejercicio.tema3.travelsummary;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
 import android.app.Activity;
+import android.content.Intent;
 import android.os.Bundle;
+import android.view.ContextMenu;
+import android.view.ContextMenu.ContextMenuInfo;
 import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
@@ -18,6 +23,9 @@ import android.widget.Toast;
 public class TravelActivity extends Activity {
 	
 	private List<TravelInfo> travels = new ArrayList<TravelInfo>();
+	private ListView list;
+	protected static final int MODIF_TRAVEL = 10;
+	protected static final int ADD_TRAVEL = 11;
 	
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -41,9 +49,11 @@ public class TravelActivity extends Activity {
 		travels.add(new TravelInfo("Hamburgo", "Alemania", 2009, "Anotacion 14"));
 		travels.add(new TravelInfo("Pekin", "China", 2011, "Anotacion 15"));
 		
+		//Asociamos el adapter al listView
 		ArrayAdapter<TravelInfo> adapter = new TravelAdapter();
-		ListView list = (ListView) findViewById(R.id.travel_list_view);
+		list = (ListView) findViewById(R.id.travel_list_view);
 		list.setAdapter(adapter);
+		
 		
 		list.setOnItemClickListener(new OnItemClickListener() {
 			@Override
@@ -58,6 +68,8 @@ public class TravelActivity extends Activity {
 				}
 			}
 		});
+		
+		registerForContextMenu(list);
 	}
 
 	@Override
@@ -66,6 +78,60 @@ public class TravelActivity extends Activity {
 		getMenuInflater().inflate(R.menu.travel, menu);
 		return true;
 	}
+	
+	@Override
+	public void onCreateContextMenu(ContextMenu menu, View v, ContextMenuInfo menuInfo) {
+		super.onCreateContextMenu(menu, v, menuInfo);
+		getMenuInflater().inflate(R.menu.menu_item, menu);
+	}
+
+	@Override
+	public boolean onContextItemSelected(MenuItem item) {
+		AdapterView.AdapterContextMenuInfo info = (AdapterView.AdapterContextMenuInfo) item.getMenuInfo();
+		@SuppressWarnings("unchecked")
+		ArrayAdapter<TravelInfo> listAdapter = (ArrayAdapter<TravelInfo>) list.getAdapter();
+		
+		switch(item.getItemId()){
+			case R.id.modif:
+				//Creamos el intent que modificara el item seleccionado
+				Intent intent = new Intent(this, EditTravelActivity.class);
+				intent.putExtra("posicion", info.position);
+				intent.putExtra("lista_viajes", (Serializable) this.travels);
+				startActivityForResult(intent, MODIF_TRAVEL);
+				break;
+			
+			case R.id.delete:
+				//Borramos el item seleccionado
+				listAdapter.remove(travels.get(info.position));
+				listAdapter.notifyDataSetChanged();
+				break;
+		}
+		
+		return super.onContextItemSelected(item);
+	}
+
+
+	@SuppressWarnings("unchecked")
+	@Override
+	protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+		super.onActivityResult(requestCode, resultCode, data);
+		ArrayAdapter<TravelInfo> listAdapter = (ArrayAdapter<TravelInfo>) list.getAdapter();
+
+		if(resultCode == RESULT_OK){
+			switch(requestCode){
+				case MODIF_TRAVEL:
+					Bundle extras = data.getExtras();
+					
+					if (extras != null)
+						travels = (ArrayList<TravelInfo>) extras.getSerializable("lista_viajes");
+					
+					listAdapter.notifyDataSetChanged();
+					break;
+			}
+		}
+	}
+
+
 
 	//Inner class para el Adaptador que manejara los datos de la clase que hemos creado	
 	private class TravelAdapter extends ArrayAdapter<TravelInfo>{
