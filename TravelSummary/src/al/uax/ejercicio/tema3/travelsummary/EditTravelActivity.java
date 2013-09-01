@@ -2,24 +2,66 @@ package al.uax.ejercicio.tema3.travelsummary;
 
 import java.io.Serializable;
 import java.util.ArrayList;
+
 import android.app.Activity;
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.os.Bundle;
+import android.telephony.PhoneStateListener;
+import android.telephony.SmsMessage;
+import android.telephony.TelephonyManager;
 import android.util.Log;
 import android.view.Menu;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.Button;
 import android.widget.TextView;
+import android.widget.Toast;
 
 public class EditTravelActivity extends Activity {
 	private TextView ciudad;
 	private TextView pais;
 	private TextView anyo;
 	private TextView anotacion;
-	private boolean cancel = true; //Flag para controlar que el usuario no cancele la operación sin actualizar los datos correctamente.
 	private int posicion; //Posición de elemento que vamos a modificar. Si nos llega -1, indicará que es un elemento nuevo.
 	private ArrayList<TravelInfo> travels = new ArrayList<TravelInfo>();
+
+	//Manejo de llamadas entrantes
+		private TelephonyManager manager;
+		private PhoneStateListener listener = new PhoneStateListener(){
+			@Override
+			public void onCallStateChanged(int state, String incomingNumber){
+				super.onCallStateChanged(state, incomingNumber);
+				//Si el estado indica que el teléfono esta sonando mostramos una notificación Toast por pantalla
+	    		if (state == TelephonyManager.CALL_STATE_RINGING)
+	    			Toast.makeText(EditTravelActivity.this, "Llamada entrante de:\n" + incomingNumber , Toast.LENGTH_SHORT).show();
+			}
+		};
+		
+		//Manejo de mensajes recibidos
+		private BroadcastReceiver receiver = new BroadcastReceiver(){
+			@Override
+			public void onReceive(Context context, Intent intent) {
+				
+				if (intent.getAction().equals("android.provider.Telephony.SMS_RECEIVED")) {
+	                Bundle bundle = intent.getExtras();
+	                if (bundle != null) {
+	                    Object[] pdus = (Object[])bundle.get("pdus");
+	                    
+	                    final SmsMessage[] messages = new SmsMessage[pdus.length];
+	                    
+	                    for (int i = 0; i < pdus.length; i++) 
+	                        messages[i] = SmsMessage.createFromPdu((byte[])pdus[i]);
+	                    
+	                    if (messages.length > -1)
+	                    	Toast.makeText(EditTravelActivity.this, "SMS recibido:\n" + messages[0].getMessageBody(), Toast.LENGTH_LONG).show();
+	                }
+				}
+			}
+	    };
+	
 	
 	@SuppressWarnings("unchecked")
 	@Override
@@ -87,6 +129,18 @@ public class EditTravelActivity extends Activity {
 				}
 			}
 		});
+		
+		//Obtenemos la instancia del TelephonyManager
+        manager = (TelephonyManager) getSystemService(TELEPHONY_SERVICE);
+        
+        //Registramos el oyente para escuchar los eventos de llamadas
+        manager.listen(listener, PhoneStateListener.LISTEN_CALL_STATE);
+        
+        //Creamos y registramos el BroadcastReceiver para la recepción/envío de SMS's
+        IntentFilter filter = new IntentFilter();
+		filter.addAction("android.provider.Telephony.SMS_RECEIVED");
+        
+        registerReceiver(receiver, filter);
 	}
 
 	@Override
@@ -138,5 +192,9 @@ public class EditTravelActivity extends Activity {
 	@Override
 	protected void onDestroy() {
 		super.onDestroy();
+		Log.d("TAG", "Desactivar el listener de telefonia y mensajería");
+		super.onDestroy();
+		manager.listen(listener, PhoneStateListener.LISTEN_NONE);
+		unregisterReceiver(receiver);
 	}
 }
