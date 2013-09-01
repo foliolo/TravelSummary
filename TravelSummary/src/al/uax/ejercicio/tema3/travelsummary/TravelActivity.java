@@ -80,6 +80,25 @@ public class TravelActivity extends Activity {
 	}
 	
 	@Override
+	public boolean onMenuItemSelected(int featureId, MenuItem item) {
+		
+		switch(item.getItemId()){
+			case R.id.action_settings:
+				Toast.makeText(TravelActivity.this, "Configuración", Toast.LENGTH_SHORT).show();
+				break;
+				
+			case R.id.menu_add:
+				//Creamos el intent donde se introducirá la información del nuevo item.
+				Intent intent = new Intent(this, EditTravelActivity.class);
+				intent.putExtra("posicion", -1);
+				startActivityForResult(intent, ADD_TRAVEL);
+				break;
+		}
+		
+		return super.onMenuItemSelected(featureId, item);
+	}
+
+	@Override
 	public void onCreateContextMenu(ContextMenu menu, View v, ContextMenuInfo menuInfo) {
 		super.onCreateContextMenu(menu, v, menuInfo);
 		getMenuInflater().inflate(R.menu.menu_item, menu);
@@ -116,14 +135,22 @@ public class TravelActivity extends Activity {
 	protected void onActivityResult(int requestCode, int resultCode, Intent data) {
 		super.onActivityResult(requestCode, resultCode, data);
 		ArrayAdapter<TravelInfo> listAdapter = (ArrayAdapter<TravelInfo>) list.getAdapter();
-
+		Bundle extras;
+		
 		if(resultCode == RESULT_OK){
 			switch(requestCode){
 				case MODIF_TRAVEL:
-					Bundle extras = data.getExtras();
-					
+					extras = data.getExtras();
 					if (extras != null)
 						travels = (ArrayList<TravelInfo>) extras.getSerializable("lista_viajes");
+					
+					listAdapter.notifyDataSetChanged();
+					break;
+					
+				case ADD_TRAVEL:
+					extras = data.getExtras();
+					if(extras != null)
+						travels.add((TravelInfo) extras.getSerializable("nuevo_viaje"));
 					
 					listAdapter.notifyDataSetChanged();
 					break;

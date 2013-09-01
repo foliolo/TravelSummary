@@ -57,18 +57,34 @@ public class EditTravelActivity extends Activity {
 		boton.setOnClickListener(new OnClickListener() {
 			@Override
 			public void onClick(View v) {
-				//Volcamos la información actualizada al ArrayList
-				travels.set(posicion, new TravelInfo(ciudad.getText().toString(), 
-						pais.getText().toString(), 
-						Integer.parseInt(anyo.getText().toString()), 
-						anotacion.getText().toString()));
 				
-				//Creamos el Intent que devolvera el ArrayList a la actividad principal
-				Intent intent = new Intent();
-				intent.putExtra("lista_viajes", (Serializable) travels);
-				
-				setResult(RESULT_OK, intent);
-				finish();
+				if(posicion != -1){
+					//Volcamos la información actualizada al ArrayList (controlando que la fecha no sea vacío)
+					int fecha = anyo.getText().toString().equals("") ? 0 : Integer.parseInt(anyo.getText().toString());
+					travels.set(posicion, new TravelInfo(ciudad.getText().toString(), 
+							pais.getText().toString(), 
+							fecha, 
+							anotacion.getText().toString()));
+					
+					//Creamos el Intent que devolverá el ArrayList a la actividad principal
+					Intent intent = new Intent();
+					intent.putExtra("lista_viajes", (Serializable) travels);
+					
+					setResult(RESULT_OK, intent);
+					finish();
+				}
+				else{
+					//Creamos el Intent que devolverá el nuevo objeto a añadir(controlando que la fecha no sea vacío)
+					Intent intent = new Intent();
+					int fecha = anyo.getText().toString().equals("") ? 0 : Integer.parseInt(anyo.getText().toString());
+					intent.putExtra("nuevo_viaje", (Serializable) new TravelInfo(ciudad.getText().toString(), 
+							pais.getText().toString(), 
+							fecha, 
+							anotacion.getText().toString()));
+					
+					setResult(RESULT_OK, intent);
+					finish();
+				}
 			}
 		});
 	}
