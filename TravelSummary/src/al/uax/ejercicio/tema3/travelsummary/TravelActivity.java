@@ -81,6 +81,7 @@ public class TravelActivity extends Activity {
 	
 	@Override
 	public boolean onMenuItemSelected(int featureId, MenuItem item) {
+		Intent intent;
 		
 		switch(item.getItemId()){
 			case R.id.action_settings:
@@ -89,7 +90,7 @@ public class TravelActivity extends Activity {
 				
 			case R.id.menu_add:
 				//Creamos el intent donde se introducirá la información del nuevo item.
-				Intent intent = new Intent(this, EditTravelActivity.class);
+				intent = new Intent(this, EditTravelActivity.class);
 				intent.putExtra("posicion", -1);
 				startActivityForResult(intent, ADD_TRAVEL);
 				break;
@@ -109,11 +110,12 @@ public class TravelActivity extends Activity {
 		AdapterView.AdapterContextMenuInfo info = (AdapterView.AdapterContextMenuInfo) item.getMenuInfo();
 		@SuppressWarnings("unchecked")
 		ArrayAdapter<TravelInfo> listAdapter = (ArrayAdapter<TravelInfo>) list.getAdapter();
+		Intent intent;
 		
 		switch(item.getItemId()){
 			case R.id.modif:
 				//Creamos el intent que modificara el item seleccionado
-				Intent intent = new Intent(this, EditTravelActivity.class);
+				intent = new Intent(this, EditTravelActivity.class);
 				intent.putExtra("posicion", info.position);
 				intent.putExtra("lista_viajes", (Serializable) this.travels);
 				startActivityForResult(intent, MODIF_TRAVEL);
@@ -123,6 +125,23 @@ public class TravelActivity extends Activity {
 				//Borramos el item seleccionado
 				listAdapter.remove(travels.get(info.position));
 				listAdapter.notifyDataSetChanged();
+				break;
+
+				
+			case R.id.correo:
+				//Creamos el intent que mandará la información al correo.
+				intent = new Intent(Intent.ACTION_SEND);
+				intent.setType("text/plain");
+				//Creamos el texto a mandar
+				int posicion = info.position;
+				String textSend = "Viaje realizado:\n"
+						+ "Ciudad: " + travels.get(posicion).getCiudad() + "\n"
+						+ "País: " + travels.get(posicion).getPais() + "\n"
+						+ "Año" + travels.get(posicion).getAnyo() + "\n"
+						+ "Anotación: " + travels.get(posicion).getAnotacion();
+				
+				intent.putExtra(Intent.EXTRA_TEXT, textSend);
+				startActivity(Intent.createChooser(intent, getResources().getString(R.string.menu_item_send_choose)));
 				break;
 		}
 		

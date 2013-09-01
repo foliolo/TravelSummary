@@ -138,11 +138,5 @@ public class EditTravelActivity extends Activity {
 	@Override
 	protected void onDestroy() {
 		super.onDestroy();
-		if(cancel){
-			Log.d("TAG", "El usuario cancela la edición de viaje");
-			Intent intent = new Intent();
-			setResult(RESULT_CANCELED, intent);
-			finish();
-		}
 	}
 }

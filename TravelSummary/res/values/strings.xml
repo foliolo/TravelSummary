@@ -17,6 +17,8 @@
     
     <string name="menu_item_modif">Modificar</string>
     <string name="menu_item_delete">Borrar</string>
+    <string name="menu_item_send">e-mail viaje</string>
+    <string name="menu_item_send_choose">Compartir con</string>
     
     <string name="action_settings">Configuración</string>
     <string name="add_item">Añadir viaje</string>
