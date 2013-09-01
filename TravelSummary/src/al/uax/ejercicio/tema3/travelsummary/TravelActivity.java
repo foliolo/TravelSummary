@@ -9,6 +9,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.os.BatteryManager;
 import android.os.Bundle;
 import android.telephony.PhoneStateListener;
 import android.telephony.SmsMessage;
@@ -48,7 +49,7 @@ public class TravelActivity extends Activity {
 	};
 	
 	//Manejo de mensajes recibidos
-	private BroadcastReceiver receiver = new BroadcastReceiver(){
+	private BroadcastReceiver smsReceiver = new BroadcastReceiver(){
 		@Override
 		public void onReceive(Context context, Intent intent) {
 			
@@ -68,12 +69,36 @@ public class TravelActivity extends Activity {
 			}
 		}
     };
+    
+    //Control de batería. Uso de Sticky Intent
+	private Intent batteryStatus;
+    private BroadcastReceiver bateryReceiver = new BroadcastReceiver(){
+		@Override
+		public void onReceive(Context context, Intent intent) {
+		
+			// Control de si se está cargando
+			int status = batteryStatus.getIntExtra(BatteryManager.EXTRA_STATUS, -1);
+			boolean isCharging = status == BatteryManager.BATTERY_STATUS_CHARGING || 
+					status == BatteryManager.BATTERY_STATUS_FULL;
+			
+			int level = batteryStatus.getIntExtra(BatteryManager.EXTRA_LEVEL, -1);
+			int scale = batteryStatus.getIntExtra(BatteryManager.EXTRA_SCALE, -1);
+
+			float currBattery = 100 * level / (float)scale;
+
+			// Aviso si está en 20% ó 10% de batería (y no está cargándose)
+			if(!isCharging)
+				if(currBattery>19 && currBattery>21 || currBattery>9 && currBattery>11){
+					Toast.makeText(TravelActivity.this, "Cudidado:\n" + currBattery + "% batería", Toast.LENGTH_LONG).show();
+				}
+		}
+    };
+    
 	
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_travel);
-		
 		//Generamos los datos
 		travels.add(new TravelInfo("Londres", "UK", 2012, "Anotacion 1"));
 		travels.add(new TravelInfo("Paris", "Francia", 2007, "Anotacion 2"));
@@ -121,10 +146,14 @@ public class TravelActivity extends Activity {
         manager.listen(listener, PhoneStateListener.LISTEN_CALL_STATE);
         
         //Creamos y registramos el BroadcastReceiver para la recepción/envío de SMS's
-        IntentFilter filter = new IntentFilter();
-		filter.addAction("android.provider.Telephony.SMS_RECEIVED");
+        IntentFilter smsFilter = new IntentFilter();
+		smsFilter.addAction("android.provider.Telephony.SMS_RECEIVED");
+        registerReceiver(smsReceiver, smsFilter);
         
-        registerReceiver(receiver, filter);
+        //Creamos y registramos el Sticky Intent para controlar la batería
+		IntentFilter bateryFilter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
+		batteryStatus = this.registerReceiver(null, bateryFilter);
+		registerReceiver(bateryReceiver, bateryFilter);
 	}
 
 	@Override
@@ -281,7 +310,7 @@ public class TravelActivity extends Activity {
 		Log.d("TAG", "Desactivar el listener de telefonia y mensajería");
 		super.onDestroy();
 		manager.listen(listener, PhoneStateListener.LISTEN_NONE);
-		unregisterReceiver(receiver);
+		unregisterReceiver(smsReceiver);
 	}
 
 
