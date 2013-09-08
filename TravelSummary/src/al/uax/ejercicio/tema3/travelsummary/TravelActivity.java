@@ -2,7 +2,6 @@ package al.uax.ejercicio.tema3.travelsummary;
 
 import java.io.Serializable;
 import java.util.ArrayList;
-import java.util.List;
 
 import android.app.Activity;
 import android.content.BroadcastReceiver;
@@ -31,10 +30,13 @@ import android.widget.Toast;
 public class TravelActivity extends Activity {
 	
 	//Atributos
-	private List<TravelInfo> travels = new ArrayList<TravelInfo>();
+	private ArrayList<TravelInfo> travels = new ArrayList<TravelInfo>();
+	ArrayAdapter<TravelInfo> adapter = null;
 	private ListView list;
 	protected static final int MODIF_TRAVEL = 10;
 	protected static final int ADD_TRAVEL = 11;
+	int posicion;
+
 	
 	//Manejo de llamadas entrantes
 	private TelephonyManager manager;
@@ -81,16 +83,19 @@ public class TravelActivity extends Activity {
 			boolean isCharging = status == BatteryManager.BATTERY_STATUS_CHARGING || 
 					status == BatteryManager.BATTERY_STATUS_FULL;
 			
-			int level = batteryStatus.getIntExtra(BatteryManager.EXTRA_LEVEL, -1);
-			int scale = batteryStatus.getIntExtra(BatteryManager.EXTRA_SCALE, -1);
-
-			float currBattery = 100 * level / (float)scale;
-
-			// Aviso si está en 20% ó 10% de batería (y no está cargándose)
-			if(!isCharging)
-				if(currBattery>19 && currBattery>21 || currBattery>9 && currBattery>11){
-					Toast.makeText(TravelActivity.this, "Cudidado:\n" + currBattery + "% batería", Toast.LENGTH_LONG).show();
-				}
+			if(batteryStatus.getExtras() != null){
+				int level = batteryStatus.getIntExtra(BatteryManager.EXTRA_LEVEL, -1);
+				int scale = batteryStatus.getIntExtra(BatteryManager.EXTRA_SCALE, -1);
+	
+				float currBattery = 100 * level / (float)scale;
+				
+				// Aviso si está en 20% ó 10% de batería (y no está cargándose)
+				if(!isCharging)
+					if(currBattery>19 && currBattery<21 || currBattery>9 && currBattery<11)
+						Toast.makeText(TravelActivity.this, "Cudidado:\n" + currBattery + "% batería", Toast.LENGTH_LONG).show();
+			}
+			else
+				Log.d("TAG", "ERROR CON LA BATERIA");
 		}
     };
     
@@ -110,14 +115,9 @@ public class TravelActivity extends Activity {
 		travels.add(new TravelInfo("Gotham", "City", 2011, "Anotacion 8"));
 		travels.add(new TravelInfo("Hamburgo", "Alemania", 2009, "Anotacion 9"));
 		travels.add(new TravelInfo("Pekin", "China", 2011, "Anotacion 10"));
-		travels.add(new TravelInfo("Londres", "UK", 2012, "Anotacion 11"));
-		travels.add(new TravelInfo("Paris", "Francia", 2007, "Anotacion 12"));
-		travels.add(new TravelInfo("Gotham", "City", 2011, "Anotacion 13"));
-		travels.add(new TravelInfo("Hamburgo", "Alemania", 2009, "Anotacion 14"));
-		travels.add(new TravelInfo("Pekin", "China", 2011, "Anotacion 15"));
 		
 		//Asociamos el adapter al listView
-		ArrayAdapter<TravelInfo> adapter = new TravelAdapter();
+		adapter = new TravelAdapter();
 		list = (ListView) findViewById(R.id.travel_list_view);
 		list.setAdapter(adapter);
 		
@@ -192,32 +192,38 @@ public class TravelActivity extends Activity {
 	@Override
 	public boolean onContextItemSelected(MenuItem item) {
 		AdapterView.AdapterContextMenuInfo info = (AdapterView.AdapterContextMenuInfo) item.getMenuInfo();
-		@SuppressWarnings("unchecked")
-		ArrayAdapter<TravelInfo> listAdapter = (ArrayAdapter<TravelInfo>) list.getAdapter();
+//		@SuppressWarnings("unchecked")
+//		ArrayAdapter<TravelInfo> listAdapter = (ArrayAdapter<TravelInfo>) list.getAdapter();
 		Intent intent;
+		
+		posicion = info.position;
 		
 		switch(item.getItemId()){
 			case R.id.modif:
 				//Creamos el intent que modificara el item seleccionado
 				intent = new Intent(this, EditTravelActivity.class);
-				intent.putExtra("posicion", info.position);
-				intent.putExtra("lista_viajes", (Serializable) this.travels);
+				
+				Bundle data = new Bundle();
+				data.putInt("posicion", posicion);
+				data.putSerializable("modif_viaje", (Serializable) travels.get(posicion));
+				intent.putExtras(data);
+				
 				startActivityForResult(intent, MODIF_TRAVEL);
 				break;
 			
 			case R.id.delete:
 				//Borramos el item seleccionado
-				listAdapter.remove(travels.get(info.position));
-				listAdapter.notifyDataSetChanged();
+				travels.remove(info.position);
+				adapter.notifyDataSetChanged();
 				break;
-
 				
 			case R.id.correo:
 				//Creamos el intent que mandará la información al correo.
 				intent = new Intent(Intent.ACTION_SEND);
 				intent.setType("text/plain");
+				
 				//Creamos el texto a mandar
-				int posicion = info.position;
+				posicion = info.position;
 				String textSend = "Viaje realizado:\n"
 						+ "Ciudad: " + travels.get(posicion).getCiudad() + "\n"
 						+ "País: " + travels.get(posicion).getPais() + "\n"
@@ -232,21 +238,21 @@ public class TravelActivity extends Activity {
 		return super.onContextItemSelected(item);
 	}
 
-	@SuppressWarnings("unchecked")
 	@Override
 	protected void onActivityResult(int requestCode, int resultCode, Intent data) {
 		super.onActivityResult(requestCode, resultCode, data);
-		ArrayAdapter<TravelInfo> listAdapter = (ArrayAdapter<TravelInfo>) list.getAdapter();
 		Bundle extras;
 		
 		if(resultCode == RESULT_OK){
 			switch(requestCode){
 				case MODIF_TRAVEL:
 					extras = data.getExtras();
-					if (extras != null)
-						travels = (ArrayList<TravelInfo>) extras.getSerializable("lista_viajes");
+					if (extras != null){
+						travels.remove(posicion);
+						travels.add(posicion, (TravelInfo) extras.getSerializable("modif_viaje"));
+					}
 					
-					listAdapter.notifyDataSetChanged();
+					adapter.notifyDataSetChanged();
 					break;
 					
 				case ADD_TRAVEL:
@@ -254,7 +260,7 @@ public class TravelActivity extends Activity {
 					if(extras != null)
 						travels.add((TravelInfo) extras.getSerializable("nuevo_viaje"));
 					
-					listAdapter.notifyDataSetChanged();
+					adapter.notifyDataSetChanged();
 					break;
 			}
 		}
@@ -265,54 +271,35 @@ public class TravelActivity extends Activity {
 		Log.e("TAG", "Estado salvado");
 		
 		outState.putSerializable("lista_viajes", (Serializable) travels);
-		/*
-		//Localizamos los elementos de pantalla que vamos a guardar
-		anotacion = (TextView) findViewById(R.id.anotacion);
-
-		String miCiudad = ciudad.getText().toString();
-		String miPais = pais.getText().toString();
-		String miAnyo= anyo.getText().toString();
-		String miAnotacion = anotacion.getText().toString();
-		
-		outState.putString("ciudad",miCiudad);
-		outState.putString("pais", miPais);
-		outState.putString("anyo", miAnyo);
-		outState.putString("anotacion", miAnotacion);
-		*/
 		super.onSaveInstanceState(outState);
 	}
 	
 	//@Override
 	@SuppressWarnings("unchecked")
 	protected void onRestoreInstaceState(Bundle savedInstanceState){
+		super.onRestoreInstanceState(savedInstanceState);
 		Log.e("TAG", "Estado restaurado");
 		
-		if(savedInstanceState != null){
+		if(savedInstanceState != null)
 			travels = (ArrayList<TravelInfo>) savedInstanceState.getSerializable("lista_viajes");
-			/*
-			String miCiudad = savedInstanceState.getString("ciudad");
-			String miPais = savedInstanceState.getString("pais");
-			String miAnyo= savedInstanceState.getString("anyo");
-			String miAnotacion = savedInstanceState.getString("anotacion");
-			
-			ciudad.setText(miCiudad);
-			pais.setText(miPais);
-			anyo.setText(miAnyo);
-			anotacion.setText(miAnotacion);
-			*/
-		}
+
+		adapter.notifyDataSetChanged();
 		
-		super.onRestoreInstanceState(savedInstanceState);
 	}
 	
 	@Override
-	protected void onDestroy() {
+	protected void onStop() {
+		super.onStop();
 		Log.d("TAG", "Desactivar el listener de telefonia y mensajería");
-		super.onDestroy();
 		manager.listen(listener, PhoneStateListener.LISTEN_NONE);
-		unregisterReceiver(smsReceiver);
+		try{
+			unregisterReceiver(smsReceiver);
+			unregisterReceiver(bateryReceiver);
+		}
+		catch(IllegalArgumentException ex){
+			Log.d("TAG", "Fallo al desregistrar");
+		}
 	}
-
 
 	//Inner class para el Adaptador que manejara los datos de la clase que hemos creado	
 	private class TravelAdapter extends ArrayAdapter<TravelInfo>{

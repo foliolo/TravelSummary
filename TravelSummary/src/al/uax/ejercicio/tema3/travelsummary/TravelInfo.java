@@ -11,14 +11,28 @@ public class TravelInfo implements Serializable{
 	private int anyo;
 	private String anotacion;
 	
-	//Constructor
-	TravelInfo(String ciudad, String pais, int anyo, String anotacion){
+	//Constructores
+	TravelInfo() {
+		this.ciudad = "";
+		this.pais = "";
+		this.anyo = 0;
+		this.anotacion = "";
+	}
+	
+	TravelInfo(String ciudad, String pais, int anyo, String anotacion) {
 		this.ciudad = ciudad;
 		this.pais = pais;
 		this.anyo = anyo;
 		this.anotacion = anotacion;
 	}
 	
+	public TravelInfo(TravelInfo viaje) {
+		this.ciudad = viaje.ciudad;
+		this.pais = viaje.pais;
+		this.anyo = viaje.anyo;
+		this.anotacion = viaje.anotacion;
+	}
+
 	//Métodos
 	public String getCiudad() {
 		return ciudad;

@@ -17,7 +17,7 @@
 
     <string name="menu_item_modif">Modify</string>
     <string name="menu_item_delete">Delete</string>
-    <string name="menu_item_send">e-mail travel</string>
+    <string name="menu_item_send">Share</string>
     <string name="menu_item_send_choose">Share with</string>
     
     <string name="action_settings">Settings</string>    

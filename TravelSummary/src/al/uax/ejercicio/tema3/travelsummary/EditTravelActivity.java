@@ -1,13 +1,13 @@
 package al.uax.ejercicio.tema3.travelsummary;
 
 import java.io.Serializable;
-import java.util.ArrayList;
 
 import android.app.Activity;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.os.BatteryManager;
 import android.os.Bundle;
 import android.telephony.PhoneStateListener;
 import android.telephony.SmsMessage;
@@ -26,44 +26,64 @@ public class EditTravelActivity extends Activity {
 	private TextView anyo;
 	private TextView anotacion;
 	private int posicion; //Posición de elemento que vamos a modificar. Si nos llega -1, indicará que es un elemento nuevo.
-	private ArrayList<TravelInfo> travels = new ArrayList<TravelInfo>();
 
 	//Manejo de llamadas entrantes
-		private TelephonyManager manager;
-		private PhoneStateListener listener = new PhoneStateListener(){
-			@Override
-			public void onCallStateChanged(int state, String incomingNumber){
-				super.onCallStateChanged(state, incomingNumber);
-				//Si el estado indica que el teléfono esta sonando mostramos una notificación Toast por pantalla
-	    		if (state == TelephonyManager.CALL_STATE_RINGING)
-	    			Toast.makeText(EditTravelActivity.this, "Llamada entrante de:\n" + incomingNumber , Toast.LENGTH_SHORT).show();
+	private TelephonyManager manager;
+	private PhoneStateListener listener = new PhoneStateListener(){
+		@Override
+		public void onCallStateChanged(int state, String incomingNumber){
+			super.onCallStateChanged(state, incomingNumber);
+			//Si el estado indica que el teléfono esta sonando mostramos una notificación Toast por pantalla
+    		if (state == TelephonyManager.CALL_STATE_RINGING)
+    			Toast.makeText(EditTravelActivity.this, "Llamada entrante de:\n" + incomingNumber , Toast.LENGTH_SHORT).show();
+		}
+	};
+	
+	//Manejo de mensajes recibidos
+	private BroadcastReceiver receiver = new BroadcastReceiver(){
+		@Override
+		public void onReceive(Context context, Intent intent) {
+			
+			if (intent.getAction().equals("android.provider.Telephony.SMS_RECEIVED")) {
+                Bundle bundle = intent.getExtras();
+                if (bundle != null) {
+                    Object[] pdus = (Object[])bundle.get("pdus");
+                    
+                    final SmsMessage[] messages = new SmsMessage[pdus.length];
+                    
+                    for (int i = 0; i < pdus.length; i++) 
+                        messages[i] = SmsMessage.createFromPdu((byte[])pdus[i]);
+                    
+                    if (messages.length > -1)
+                    	Toast.makeText(EditTravelActivity.this, "SMS recibido:\n" + messages[0].getMessageBody(), Toast.LENGTH_LONG).show();
+                }
 			}
-		};
+		}
+    };
+
+    //Control de batería. Uso de Sticky Intent
+	private Intent batteryStatus;
+    private BroadcastReceiver bateryReceiver = new BroadcastReceiver(){
+		@Override
+		public void onReceive(Context context, Intent intent) {
 		
-		//Manejo de mensajes recibidos
-		private BroadcastReceiver receiver = new BroadcastReceiver(){
-			@Override
-			public void onReceive(Context context, Intent intent) {
-				
-				if (intent.getAction().equals("android.provider.Telephony.SMS_RECEIVED")) {
-	                Bundle bundle = intent.getExtras();
-	                if (bundle != null) {
-	                    Object[] pdus = (Object[])bundle.get("pdus");
-	                    
-	                    final SmsMessage[] messages = new SmsMessage[pdus.length];
-	                    
-	                    for (int i = 0; i < pdus.length; i++) 
-	                        messages[i] = SmsMessage.createFromPdu((byte[])pdus[i]);
-	                    
-	                    if (messages.length > -1)
-	                    	Toast.makeText(EditTravelActivity.this, "SMS recibido:\n" + messages[0].getMessageBody(), Toast.LENGTH_LONG).show();
-	                }
-				}
-			}
-	    };
-	
-	
-	@SuppressWarnings("unchecked")
+			// Control de si se está cargando
+			int status = batteryStatus.getIntExtra(BatteryManager.EXTRA_STATUS, -1);
+			boolean isCharging = status == BatteryManager.BATTERY_STATUS_CHARGING || 
+					status == BatteryManager.BATTERY_STATUS_FULL;
+			
+			int level = batteryStatus.getIntExtra(BatteryManager.EXTRA_LEVEL, -1);
+			int scale = batteryStatus.getIntExtra(BatteryManager.EXTRA_SCALE, -1);
+
+			float currBattery = 100 * level / (float)scale;
+			
+			// Aviso si está en 20% ó 10% de batería (y no está cargándose)
+			if(!isCharging)
+				if(currBattery>19 && currBattery<21 || currBattery>9 && currBattery<11)
+					Toast.makeText(EditTravelActivity.this, "Cudidado:\n" + currBattery + "% batería", Toast.LENGTH_LONG).show();
+		}
+    };
+	    
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
@@ -75,24 +95,17 @@ public class EditTravelActivity extends Activity {
 		anyo = (TextView) findViewById(R.id.anyo);
 		anotacion = (TextView) findViewById(R.id.anotacion);
 		
-		//Rellenamos los elementos con los datos que nos manda la actividad principal. (Siempre que no sea un elemento nuevo)
-
-		//		travels = (ArrayList<TravelInfo>) intent.getSerializableExtra("lista_viajes");
-		
+		//Rellenamos los elementos con los datos que nos manda la actividad principal. (Siempre que no sea un elemento nuevo)		
 		Bundle extras = getIntent().getExtras();
 		posicion = extras.getInt("posicion", -1);
-		if (extras != null)
-		{
-		    travels = (ArrayList<TravelInfo>) extras.getSerializable("lista_viajes");
-
-		    if(posicion != -1){
-		    	ciudad.setText(travels.get(posicion).getCiudad());
-		    	pais.setText(travels.get(posicion).getPais());
-		    	anyo.setText("" + travels.get(posicion).getAnyo());
-		    	anotacion.setText(travels.get(posicion).getAnotacion());
-		    }
-		}
 		
+		if (extras != null && posicion != -1)
+		{
+	    	ciudad.setText( ((TravelInfo) extras.getSerializable("modif_viaje") ).getCiudad());
+	    	pais.setText( ((TravelInfo) extras.getSerializable("modif_viaje") ).getPais());
+	    	anyo.setText("" + ((TravelInfo) extras.getSerializable("modif_viaje") ).getAnyo());
+	    	anotacion.setText( ((TravelInfo) extras.getSerializable("modif_viaje") ).getAnotacion());
+		}
 		
 		//Realizamos la funcionalidad del botón. Se devuelven los datos actualizados a la activity principal.
 		Button boton = (Button) findViewById(R.id.boton);
@@ -101,30 +114,28 @@ public class EditTravelActivity extends Activity {
 			public void onClick(View v) {
 				
 				if(posicion != -1){
-					//Volcamos la información actualizada al ArrayList (controlando que la fecha no sea vacío)
 					int fecha = anyo.getText().toString().equals("") ? 0 : Integer.parseInt(anyo.getText().toString());
-					travels.set(posicion, new TravelInfo(ciudad.getText().toString(), 
+					
+					Bundle data = new Bundle();
+					data.putSerializable("modif_viaje", (Serializable) new TravelInfo(ciudad.getText().toString(), 
 							pais.getText().toString(), 
 							fecha, 
 							anotacion.getText().toString()));
+					getIntent().putExtras(data);
 					
-					//Creamos el Intent que devolverá el ArrayList a la actividad principal
-					Intent intent = new Intent();
-					intent.putExtra("lista_viajes", (Serializable) travels);
-					
-					setResult(RESULT_OK, intent);
+					setResult(RESULT_OK, getIntent());
 					finish();
 				}
 				else{
 					//Creamos el Intent que devolverá el nuevo objeto a añadir(controlando que la fecha no sea vacío)
-					Intent intent = new Intent();
 					int fecha = anyo.getText().toString().equals("") ? 0 : Integer.parseInt(anyo.getText().toString());
-					intent.putExtra("nuevo_viaje", (Serializable) new TravelInfo(ciudad.getText().toString(), 
+					
+					getIntent().putExtra("nuevo_viaje", (Serializable) new TravelInfo(ciudad.getText().toString(), 
 							pais.getText().toString(), 
 							fecha, 
 							anotacion.getText().toString()));
 					
-					setResult(RESULT_OK, intent);
+					setResult(RESULT_OK, getIntent());
 					finish();
 				}
 			}
@@ -139,8 +150,12 @@ public class EditTravelActivity extends Activity {
         //Creamos y registramos el BroadcastReceiver para la recepción/envío de SMS's
         IntentFilter filter = new IntentFilter();
 		filter.addAction("android.provider.Telephony.SMS_RECEIVED");
-        
         registerReceiver(receiver, filter);
+        
+        //Creamos y registramos el Sticky Intent para controlar la batería
+		IntentFilter bateryFilter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
+		batteryStatus = this.registerReceiver(null, bateryFilter);
+		registerReceiver(bateryReceiver, bateryFilter);
 	}
 
 	@Override
@@ -152,6 +167,7 @@ public class EditTravelActivity extends Activity {
 	
 	@Override
 	protected void onSaveInstanceState(Bundle outState){
+		super.onSaveInstanceState(outState);
 		Log.e("TAG", "Estado salvado");
 		
 		//Localizamos los elementos de pantalla que vamos a guardar
@@ -167,11 +183,11 @@ public class EditTravelActivity extends Activity {
 		outState.putString("anyo", miAnyo);
 		outState.putString("anotacion", miAnotacion);
 		
-		super.onSaveInstanceState(outState);
 	}
 	
 	//@Override
 	protected void onRestoreInstaceState(Bundle savedInstanceState){
+		super.onRestoreInstanceState(savedInstanceState);
 		Log.e("TAG", "Estado restaurado");
 		
 		if(savedInstanceState != null){
@@ -186,15 +202,20 @@ public class EditTravelActivity extends Activity {
 			anotacion.setText(miAnotacion);
 		}
 		
-		super.onRestoreInstanceState(savedInstanceState);
 	}
 
 	@Override
-	protected void onDestroy() {
-		super.onDestroy();
+	protected void onStop() {
+		super.onStop();
 		Log.d("TAG", "Desactivar el listener de telefonia y mensajería");
-		super.onDestroy();
 		manager.listen(listener, PhoneStateListener.LISTEN_NONE);
-		unregisterReceiver(receiver);
+
+		try{
+			unregisterReceiver(receiver);
+			unregisterReceiver(bateryReceiver);
+		}
+		catch(IllegalArgumentException ex){
+			Log.d("TAG", "Fallo al desregistrar");
+		}
 	}
 }
